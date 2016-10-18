@@ -1,0 +1,100 @@
+================1
+1. crea un directorio ~/BGP/dockerdemo/docker-images, la opción p es para crear los directorios intermedios
+2. cambia a ese directorio
+3. copia un archivo .tar.gz
+4. extrae el archivo dejando solo un .tar
+5. hace un echo
+(Los && se usan para ejecutar un conjunto de comandos)
+
+mkdir ~/BGP/dockerdemo/docker-images -p && \
+cd ~/BGP/dockerdemo/docker-images && \
+cp ~/BGP/docker-images/ubuntu.tar.gz . && \
+gunzip ubuntu.tar.gz && \
+echo In directory $(pwd) && echo image-tar: $(ls -l | grep ubuntu);
+
+1. carga una imagen a partir de un .tar
+docker load -i ubuntu.tar
+docker images
+docker run -i -t ubuntu /bin/bash
+
+================2
+
+cd ~/BGP/dockerdemo/docker-images && \
+cp ~/BGP/docker-images/alpine-bash.tar.gz . && \
+gunzip alpine-bash.tar.gz && \
+echo In directory $(pwd) && echo image-tar: $(ls -l | grep alpine);
+
+docker load -i alpine-bash.tar
+- creen directorio readerbuild en la ruta ~/BGP/dockerdemo/docker-images
+- creen un archivo vacío con nombre Dockerfile
+
+----------
+FROM alpine-bash
+MAINTAINER BGP PANAMA
+RUN mkdir /data
+ADD the-raven /data
+CMD cat /data/the-raven
+----------
+docker build -t reader1 .
+
+----------
+FROM alpine-bash
+MAINTAINER BGP PANAMÁ
+RUN mkdir /data
+ENV FILE_TO_READ /data/the-raven *
+ADD read.sh /usr/local/bin *
+ADD the-raven /data
+RUN chmod u+x /usr/local/bin/read.sh * 
+CMD /usr/local/bin/read.sh /data/the-raven *
+----------
+docker build -t reader2 .
+
+
+
+================3
+- Edite el contenido de /ect/hosts (con sudo)
+127.0.0.1	my.dominio.com
+
+- Inicia docker registry instanciando un contenedor de docker con el nombre registry desde la imagen registry tag 2
+
+docker run -d -p 5000:5000 --name registry registry:2
+
+- Crea un tag sobre la imagen para que apunte a nuestro registro
+docker tag reader localhost:5000/reader
+docker images
+
+- Hace push de la imagen a nuestro registro
+docker push localhost:5000/reader
+
+- Elimina las imáges relacionadas con reader, antes de que tratemos de traerla nuevamente
+docker rmi reader localhost:5000/reader
+
+- Hace pull del registro
+docker pull localhost:5000/reader
+
+================4
+
+docker run -d -P training/webapp python app.py
+----------------
+mkdir auth && \
+docker run --entrypoint htpasswd registry:2 -Bbn bgpuser 123test > auth/htpasswd
+
+docker run -d -p 5000:5000 --restart=always --name registry2 \
+  -v `pwd`/auth:/auth \
+  -e "REGISTRY_AUTH=htpasswd" \
+  -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
+  -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+  -v `pwd`/certs:/certs \
+  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+  -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+  registry:2
+================5
+
+docker run -d --network="host" training/webapp python app.py
+sudo netstat -nlp | grep :5000
+
+ping entre máquinas
+================------ demo
+
+Corra el registro con las siguientes opciones
+
